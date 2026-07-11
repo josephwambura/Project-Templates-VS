@@ -40,30 +40,38 @@ namespace MauiSampleApp.PageModels
 
         private async Task LoadTaskAsync(IDictionary<string, object> query)
         {
-            if (query.TryGetValue(ProjectQueryKey, out var project))
-                Project = (Project)project;
+            Project = ExtractProjectFromQuery(query);
+            int taskId = ExtractTaskIdFromQuery(query);
 
-            int taskId = 0;
+            _task = await LoadOrCreateTaskAsync(taskId);
+            await ConfigureProjectStateAsync();
 
-            if (query.TryGetValue("id", out object? value))
+            InitializeUIState(taskId);
+        }
+
+        private Project? ExtractProjectFromQuery(IDictionary<string, object> query)
+            => query.TryGetValue(ProjectQueryKey, out var project) ? (Project)project : null;
+
+        private int ExtractTaskIdFromQuery(IDictionary<string, object> query)
+            => query.TryGetValue("id", out var value) ? Convert.ToInt32(value) : 0;
+
+        private async Task<ProjectTask> LoadOrCreateTaskAsync(int taskId)
+        {
+            if (taskId == 0) return new ProjectTask();
+
+            var task = await taskRepository.GetAsync(taskId);
+            if (task is null)
             {
-                taskId = Convert.ToInt32(value);
-                _task = await taskRepository.GetAsync(taskId);
-
-                if (_task is null)
-                {
-                    errorHandler.HandleError(new Exception($"Task Id {taskId} isn't valid."));
-                    return;
-                }
-
-                Project = await projectRepository.GetAsync(_task.ProjectID);
-            }
-            else
-            {
-                _task = new ProjectTask();
+                errorHandler.HandleError(new Exception($"Task Id {taskId} isn't valid."));
+                return new ProjectTask();
             }
 
-            // If the project is new, we don't need to load the project dropdown
+            Project = await projectRepository.GetAsync(task.ProjectID);
+            return task;
+        }
+
+        private async Task ConfigureProjectStateAsync()
+        {
             if (Project?.ID == 0)
             {
                 IsExistingProject = false;
@@ -74,29 +82,18 @@ namespace MauiSampleApp.PageModels
                 IsExistingProject = true;
             }
 
-            if (Project is not null)
-                SelectedProjectIndex = Projects.FindIndex(p => p.ID == Project.ID);
-            else if (_task?.ProjectID > 0)
-                SelectedProjectIndex = Projects.FindIndex(p => p.ID == _task.ProjectID);
+            SelectedProjectIndex = Project is not null
+                ? Projects.FindIndex(p => p.ID == Project.ID)
+                : Projects.FindIndex(p => p.ID == _task.ProjectID);
+        }
 
-            if (taskId > 0)
+        private void InitializeUIState(int taskId)
+        {
+            if (taskId > 0 && _task is not null)
             {
-                if (_task is null)
-                {
-                    errorHandler.HandleError(new Exception($"Task with id {taskId} could not be found."));
-                    return;
-                }
-
                 Title = _task.Title;
                 IsCompleted = _task.IsCompleted;
                 CanDelete = true;
-            }
-            else
-            {
-                _task = new ProjectTask()
-                {
-                    ProjectID = Project?.ID ?? 0
-                };
             }
         }
 
