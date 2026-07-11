@@ -8,25 +8,15 @@ namespace MauiSampleApp.Data
     /// <summary>
     /// Repository class for managing projects in the database.
     /// </summary>
-    public class ProjectRepository
+    /// <remarks>
+    /// Initializes a new instance of the <see cref="ProjectRepository"/> class.
+    /// </remarks>
+    /// <param name="taskRepository">The task repository instance.</param>
+    /// <param name="tagRepository">The tag repository instance.</param>
+    /// <param name="logger">The logger instance.</param>
+    public class ProjectRepository(TaskRepository taskRepository, TagRepository tagRepository, ILogger<ProjectRepository> logger)
     {
         private bool _hasBeenInitialized = false;
-        private readonly ILogger _logger;
-        private readonly TaskRepository _taskRepository;
-        private readonly TagRepository _tagRepository;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ProjectRepository"/> class.
-        /// </summary>
-        /// <param name="taskRepository">The task repository instance.</param>
-        /// <param name="tagRepository">The tag repository instance.</param>
-        /// <param name="logger">The logger instance.</param>
-        public ProjectRepository(TaskRepository taskRepository, TagRepository tagRepository, ILogger<ProjectRepository> logger)
-        {
-            _taskRepository = taskRepository;
-            _tagRepository = tagRepository;
-            _logger = logger;
-        }
 
         /// <summary>
         /// Initializes the database connection and creates the Project table if it does not exist.
@@ -54,7 +44,7 @@ namespace MauiSampleApp.Data
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error creating Project table");
+                logger.LogError(e, "Error creating Project table");
                 throw;
             }
 
@@ -90,8 +80,8 @@ namespace MauiSampleApp.Data
 
             foreach (var project in projects)
             {
-                project.Tags = await _tagRepository.ListAsync(project.ID);
-                project.Tasks = await _taskRepository.ListAsync(project.ID);
+                project.Tags = await tagRepository.ListAsync(project.ID);
+                project.Tasks = await taskRepository.ListAsync(project.ID);
             }
 
             return projects;
@@ -124,8 +114,8 @@ namespace MauiSampleApp.Data
                     CategoryID = reader.GetInt32(4)
                 };
 
-                project.Tags = await _tagRepository.ListAsync(project.ID);
-                project.Tasks = await _taskRepository.ListAsync(project.ID);
+                project.Tags = await tagRepository.ListAsync(project.ID);
+                project.Tasks = await taskRepository.ListAsync(project.ID);
 
                 return project;
             }
@@ -206,8 +196,8 @@ namespace MauiSampleApp.Data
             dropCmd.CommandText = "DROP TABLE IF EXISTS Project";
             await dropCmd.ExecuteNonQueryAsync();
 
-            await _taskRepository.DropTableAsync();
-            await _tagRepository.DropTableAsync();
+            await taskRepository.DropTableAsync();
+            await tagRepository.DropTableAsync();
             _hasBeenInitialized = false;
         }
     }

@@ -8,19 +8,13 @@ namespace MauiSampleApp.Data
     /// <summary>
     /// Repository class for managing categories in the database.
     /// </summary>
-    public class CategoryRepository
+    /// <remarks>
+    /// Initializes a new instance of the <see cref="CategoryRepository"/> class.
+    /// </remarks>
+    /// <param name="logger">The logger instance.</param>
+    public class CategoryRepository(ILogger<CategoryRepository> logger)
     {
         private bool _hasBeenInitialized = false;
-        private readonly ILogger _logger;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CategoryRepository"/> class.
-        /// </summary>
-        /// <param name="logger">The logger instance.</param>
-        public CategoryRepository(ILogger<CategoryRepository> logger)
-        {
-            _logger = logger;
-        }
 
         /// <summary>
         /// Initializes the database connection and creates the Category table if it does not exist.
@@ -46,7 +40,7 @@ namespace MauiSampleApp.Data
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error creating Category table");
+                logger.LogError(e, "Error creating Category table");
                 throw;
             }
 

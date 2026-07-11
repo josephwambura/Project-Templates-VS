@@ -7,25 +7,18 @@ using MauiSampleApp.Services;
 
 namespace MauiSampleApp.PageModels
 {
-    public partial class ProjectListPageModel : ObservableObject
+    public partial class ProjectListPageModel(ProjectRepository projectRepository) : ObservableObject
     {
-        private readonly ProjectRepository _projectRepository;
-
         [ObservableProperty]
         private List<Project> _projects = [];
 
         [ObservableProperty]
         private Project? selectedProject;
 
-        public ProjectListPageModel(ProjectRepository projectRepository)
-        {
-            _projectRepository = projectRepository;
-        }
-
         [RelayCommand]
         private async Task Appearing()
         {
-            Projects = await _projectRepository.ListAsync();
+            Projects = await projectRepository.ListAsync();
         }
 
         [RelayCommand]

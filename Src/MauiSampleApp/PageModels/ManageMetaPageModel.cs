@@ -9,30 +9,19 @@ using System.Collections.ObjectModel;
 
 namespace MauiSampleApp.PageModels
 {
-    public partial class ManageMetaPageModel : ObservableObject
+    public partial class ManageMetaPageModel(CategoryRepository categoryRepository, TagRepository tagRepository, SeedDataService seedDataService) : ObservableObject
     {
-        private readonly CategoryRepository _categoryRepository;
-        private readonly TagRepository _tagRepository;
-        private readonly SeedDataService _seedDataService;
-
         [ObservableProperty]
         private ObservableCollection<Category> _categories = [];
 
         [ObservableProperty]
         private ObservableCollection<Tag> _tags = [];
 
-        public ManageMetaPageModel(CategoryRepository categoryRepository, TagRepository tagRepository, SeedDataService seedDataService)
-        {
-            _categoryRepository = categoryRepository;
-            _tagRepository = tagRepository;
-            _seedDataService = seedDataService;
-        }
-
         private async Task LoadData()
         {
-            var categoriesList = await _categoryRepository.ListAsync();
+            var categoriesList = await categoryRepository.ListAsync();
             Categories = new ObservableCollection<Category>(categoriesList);
-            var tagsList = await _tagRepository.ListAsync();
+            var tagsList = await tagRepository.ListAsync();
             Tags = new ObservableCollection<Tag>(tagsList);
         }
 
@@ -45,7 +34,7 @@ namespace MauiSampleApp.PageModels
         {
             foreach (var category in Categories)
             {
-                await _categoryRepository.SaveItemAsync(category);
+                await categoryRepository.SaveItemAsync(category);
             }
 
             await AppShell.DisplayToastAsync("Categories saved");
@@ -56,7 +45,7 @@ namespace MauiSampleApp.PageModels
         private async Task DeleteCategory(Category category)
         {
             Categories.Remove(category);
-            await _categoryRepository.DeleteItemAsync(category);
+            await categoryRepository.DeleteItemAsync(category);
             await AppShell.DisplayToastAsync("Category deleted");
             SemanticScreenReader.Announce("Category deleted");
         }
@@ -66,7 +55,7 @@ namespace MauiSampleApp.PageModels
         {
             var category = new Category();
             Categories.Add(category);
-            await _categoryRepository.SaveItemAsync(category);
+            await categoryRepository.SaveItemAsync(category);
             await AppShell.DisplayToastAsync("Category added");
             SemanticScreenReader.Announce("Category added");
         }
@@ -76,7 +65,7 @@ namespace MauiSampleApp.PageModels
         {
             foreach (var tag in Tags)
             {
-                await _tagRepository.SaveItemAsync(tag);
+                await tagRepository.SaveItemAsync(tag);
             }
 
             await AppShell.DisplayToastAsync("Tags saved");
@@ -87,7 +76,7 @@ namespace MauiSampleApp.PageModels
         private async Task DeleteTag(Tag tag)
         {
             Tags.Remove(tag);
-            await _tagRepository.DeleteItemAsync(tag);
+            await tagRepository.DeleteItemAsync(tag);
             await AppShell.DisplayToastAsync("Tag deleted");
             SemanticScreenReader.Announce("Tags deleted");
         }
@@ -97,7 +86,7 @@ namespace MauiSampleApp.PageModels
         {
             var tag = new Tag();
             Tags.Add(tag);
-            await _tagRepository.SaveItemAsync(tag);
+            await tagRepository.SaveItemAsync(tag);
             await AppShell.DisplayToastAsync("Tag added");
             SemanticScreenReader.Announce("Tags added");
         }
@@ -106,7 +95,7 @@ namespace MauiSampleApp.PageModels
         private async Task Reset()
         {
             Preferences.Default.Remove("is_seeded");
-            await _seedDataService.LoadSeedDataAsync();
+            await seedDataService.LoadSeedDataAsync();
             Preferences.Default.Set("is_seeded", true);
             await Shell.Current.GoToAsync("//main");
         }

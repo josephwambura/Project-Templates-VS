@@ -8,19 +8,13 @@ namespace MauiSampleApp.Data
     /// <summary>
     /// Repository class for managing tags in the database.
     /// </summary>
-    public class TagRepository
+    /// <remarks>
+    /// Initializes a new instance of the <see cref="TagRepository"/> class.
+    /// </remarks>
+    /// <param name="logger">The logger instance.</param>
+    public class TagRepository(ILogger<TagRepository> logger)
     {
         private bool _hasBeenInitialized = false;
-        private readonly ILogger _logger;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TagRepository"/> class.
-        /// </summary>
-        /// <param name="logger">The logger instance.</param>
-        public TagRepository(ILogger<TagRepository> logger)
-        {
-            _logger = logger;
-        }
 
         /// <summary>
         /// Initializes the database connection and creates the Tag and ProjectsTags tables if they do not exist.
@@ -54,7 +48,7 @@ namespace MauiSampleApp.Data
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error creating tables");
+                logger.LogError(e, "Error creating tables");
                 throw;
             }
 

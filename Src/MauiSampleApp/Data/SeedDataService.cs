@@ -6,98 +6,83 @@ using System.Text.Json;
 
 namespace MauiSampleApp.Data
 {
-    public class SeedDataService
+    public class SeedDataService(ProjectRepository projectRepository, TaskRepository taskRepository, TagRepository tagRepository, CategoryRepository categoryRepository, ILogger<SeedDataService> logger)
     {
-        private readonly ProjectRepository _projectRepository;
-        private readonly TaskRepository _taskRepository;
-        private readonly TagRepository _tagRepository;
-        private readonly CategoryRepository _categoryRepository;
         private readonly string _seedDataFilePath = "SeedData.json";
-        private readonly ILogger<SeedDataService> _logger;
-
-        public SeedDataService(ProjectRepository projectRepository, TaskRepository taskRepository, TagRepository tagRepository, CategoryRepository categoryRepository, ILogger<SeedDataService> logger)
-        {
-            _projectRepository = projectRepository;
-            _taskRepository = taskRepository;
-            _tagRepository = tagRepository;
-            _categoryRepository = categoryRepository;
-            _logger = logger;
-        }
 
         public async Task LoadSeedDataAsync()
         {
-            ClearTables();
+            await ClearTablesAsync();
 
-            await using Stream templateStream = await FileSystem.OpenAppPackageFileAsync(_seedDataFilePath);
+            var payload = await LoadSeedDataFromFileAsync();
+            if (payload is null) return;
 
-            ProjectsJson? payload = null;
+            await SaveProjectsAsync(payload.Projects);
+        }
+
+        private async Task<ProjectsJson?> LoadSeedDataFromFileAsync()
+        {
             try
             {
-                payload = JsonSerializer.Deserialize(templateStream, JsonContext.Default.ProjectsJson);
+                await using Stream templateStream = await FileSystem.OpenAppPackageFileAsync(_seedDataFilePath);
+                return JsonSerializer.Deserialize(templateStream, JsonContext.Default.ProjectsJson);
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error deserializing seed data");
-            }
-
-            try
-            {
-                if (payload is not null)
-                {
-                    foreach (var project in payload.Projects)
-                    {
-                        if (project is null)
-                        {
-                            continue;
-                        }
-
-                        if (project.Category is not null)
-                        {
-                            await _categoryRepository.SaveItemAsync(project.Category);
-                            project.CategoryID = project.Category.ID;
-                        }
-
-                        await _projectRepository.SaveItemAsync(project);
-
-                        if (project?.Tasks is not null)
-                        {
-                            foreach (var task in project.Tasks)
-                            {
-                                task.ProjectID = project.ID;
-                                await _taskRepository.SaveItemAsync(task);
-                            }
-                        }
-
-                        if (project?.Tags is not null)
-                        {
-                            foreach (var tag in project.Tags)
-                            {
-                                await _tagRepository.SaveItemAsync(tag, project.ID);
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Error saving seed data");
-                throw;
+                logger.LogError(e, "Error deserializing seed data");
+                return null;
             }
         }
 
-        private async void ClearTables()
+        private async Task SaveProjectsAsync(IEnumerable<Project?> projects)
+        {
+            foreach (var project in projects.Where(p => p is not null))
+            {
+                await SaveProjectAsync(project!);
+            }
+        }
+
+        private async Task SaveProjectAsync(Project project)
+        {
+            if (project.Category is not null)
+            {
+                await categoryRepository.SaveItemAsync(project.Category);
+                project.CategoryID = project.Category.ID;
+            }
+
+            await projectRepository.SaveItemAsync(project);
+
+            if (project.Tasks is not null)
+            {
+                foreach (var task in project.Tasks)
+                {
+                    task.ProjectID = project.ID;
+                    await taskRepository.SaveItemAsync(task);
+                }
+            }
+
+            if (project.Tags is not null)
+            {
+                foreach (var tag in project.Tags)
+                {
+                    await tagRepository.SaveItemAsync(tag, project.ID);
+                }
+            }
+        }
+
+        private async Task ClearTablesAsync()
         {
             try
             {
                 await Task.WhenAll(
-                    _projectRepository.DropTableAsync(),
-                    _taskRepository.DropTableAsync(),
-                    _tagRepository.DropTableAsync(),
-                    _categoryRepository.DropTableAsync());
+                    projectRepository.DropTableAsync(),
+                    taskRepository.DropTableAsync(),
+                    tagRepository.DropTableAsync(),
+                    categoryRepository.DropTableAsync());
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                logger.LogError(e, "Error clearing tables");
             }
         }
     }

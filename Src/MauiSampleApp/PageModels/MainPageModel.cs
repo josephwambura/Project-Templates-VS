@@ -5,16 +5,11 @@ using MauiSampleApp.Models;
 
 namespace MauiSampleApp.PageModels
 {
-    public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
+    public partial class MainPageModel(SeedDataService seedDataService, ProjectRepository projectRepository,
+        TaskRepository taskRepository, CategoryRepository categoryRepository, ModalErrorHandler errorHandler) : ObservableObject, IProjectTaskPageModel
     {
         private bool _isNavigatedTo;
         private bool _dataLoaded;
-        private readonly ProjectRepository _projectRepository;
-        private readonly TaskRepository _taskRepository;
-        private readonly CategoryRepository _categoryRepository;
-        private readonly ModalErrorHandler _errorHandler;
-        private readonly SeedDataService _seedDataService;
-
         [ObservableProperty]
         private List<CategoryChartData> _todoCategoryData = [];
 
@@ -45,28 +40,18 @@ namespace MauiSampleApp.PageModels
         public bool HasCompletedTasks
             => Tasks?.Any(t => t.IsCompleted) ?? false;
 
-        public MainPageModel(SeedDataService seedDataService, ProjectRepository projectRepository,
-            TaskRepository taskRepository, CategoryRepository categoryRepository, ModalErrorHandler errorHandler)
-        {
-            _projectRepository = projectRepository;
-            _taskRepository = taskRepository;
-            _categoryRepository = categoryRepository;
-            _errorHandler = errorHandler;
-            _seedDataService = seedDataService;
-        }
-
         private async Task LoadData()
         {
             try
             {
                 IsBusy = true;
 
-                Projects = await _projectRepository.ListAsync();
+                Projects = await projectRepository.ListAsync();
 
                 var chartData = new List<CategoryChartData>();
                 var chartColors = new List<Brush>();
 
-                var categories = await _categoryRepository.ListAsync();
+                var categories = await categoryRepository.ListAsync();
                 foreach (var category in categories)
                 {
                     chartColors.Add(category.ColorBrush);
@@ -80,7 +65,7 @@ namespace MauiSampleApp.PageModels
                 TodoCategoryData = chartData;
                 TodoCategoryColors = chartColors;
 
-                Tasks = await _taskRepository.ListAsync();
+                Tasks = await taskRepository.ListAsync();
             }
             finally
             {
@@ -112,7 +97,7 @@ namespace MauiSampleApp.PageModels
             }
             catch (Exception e)
             {
-                _errorHandler.HandleError(e);
+                errorHandler.HandleError(e);
             }
             finally
             {
@@ -133,7 +118,7 @@ namespace MauiSampleApp.PageModels
         {
             if (!_dataLoaded)
             {
-                await InitData(_seedDataService);
+                await InitData(seedDataService);
                 _dataLoaded = true;
                 await Refresh();
             }
@@ -148,7 +133,7 @@ namespace MauiSampleApp.PageModels
         private Task TaskCompleted(ProjectTask task)
         {
             OnPropertyChanged(nameof(HasCompletedTasks));
-            return _taskRepository.SaveItemAsync(task);
+            return taskRepository.SaveItemAsync(task);
         }
 
         [RelayCommand]
@@ -169,7 +154,7 @@ namespace MauiSampleApp.PageModels
             var completedTasks = Tasks.Where(t => t.IsCompleted).ToList();
             foreach (var task in completedTasks)
             {
-                await _taskRepository.DeleteItemAsync(task);
+                await taskRepository.DeleteItemAsync(task);
                 Tasks.Remove(task);
             }
 

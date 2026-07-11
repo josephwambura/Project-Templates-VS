@@ -8,19 +8,13 @@ namespace MauiSampleApp.Data
     /// <summary>
     /// Repository class for managing tasks in the database.
     /// </summary>
-    public class TaskRepository
+    /// <remarks>
+    /// Initializes a new instance of the <see cref="TaskRepository"/> class.
+    /// </remarks>
+    /// <param name="logger">The logger instance.</param>
+    public class TaskRepository(ILogger<TaskRepository> logger)
     {
         private bool _hasBeenInitialized = false;
-        private readonly ILogger _logger;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TaskRepository"/> class.
-        /// </summary>
-        /// <param name="logger">The logger instance.</param>
-        public TaskRepository(ILogger<TaskRepository> logger)
-        {
-            _logger = logger;
-        }
 
         /// <summary>
         /// Initializes the database connection and creates the Task table if it does not exist.
@@ -47,7 +41,7 @@ namespace MauiSampleApp.Data
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error creating Task table");
+                logger.LogError(e, "Error creating Task table");
                 throw;
             }
 
