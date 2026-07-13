@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace MauiSampleApp.PageModels
@@ -48,7 +48,6 @@ namespace MauiSampleApp.PageModels
         [RelayCommand]
         private void SignUp()
         {
-
         }
 
         [RelayCommand]
