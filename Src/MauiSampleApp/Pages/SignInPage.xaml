@@ -1,0 +1,70 @@
+<ContentPage xmlns:pageModels="clr-namespace:MauiSampleApp.PageModels"
+             xmlns:models="clr-namespace:MauiSampleApp.Models"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:sf="clr-namespace:Syncfusion.Maui.Toolkit.TextInputLayout;assembly=Syncfusion.Maui.Toolkit"
+             x:DataType="pageModels:SignInPageModel"
+             x:Class="MauiSampleApp.Pages.SignInPage"
+             x:Name="SignIn"
+             Title="Sign In">
+    <ContentPage.Resources>
+        <Style x:Key="InvalidEntryStyle" TargetType="Entry">
+            <Setter Property="TextColor" Value="Red" />
+        </Style>
+
+        <Style TargetType="Entry">
+            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource DarkOnLightBackground}, Dark={StaticResource LightOnDarkBackground}}" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="FontFamily" Value="OpenSansRegular"/>
+            <Setter Property="FontSize" Value="{OnIdiom 16,Desktop=24}" />
+            <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}" />
+            <Setter Property="MinimumHeightRequest" Value="44"/>
+            <Setter Property="MinimumWidthRequest" Value="44"/>
+            <Setter Property="VisualStateManager.VisualStateGroups">
+                <VisualStateGroupList>
+                    <VisualStateGroup x:Name="CommonStates">
+                        <VisualState x:Name="Normal" />
+                        <VisualState x:Name="Disabled">
+                            <VisualState.Setters>
+                                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateGroupList>
+            </Setter>
+        </Style>
+    </ContentPage.Resources>
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Sign Up"
+            Order="Primary"
+            Priority="0"
+            IconImageSource="{StaticResource IconSignUp}"
+            SemanticProperties.Description="SignUp Account"
+            Command="{Binding SignUpCommand}" />
+    </ContentPage.ToolbarItems>
+    <ScrollView>
+        <VerticalStackLayout Spacing="{StaticResource LayoutSpacing}" Padding="{StaticResource LayoutPadding}">
+            <sf:SfTextInputLayout Hint="Username">
+                <Entry Text="{Binding UserName}" SemanticProperties.Description="{Binding UserName}" />
+            </sf:SfTextInputLayout>
+            <Grid ColumnSpacing="{StaticResource LayoutSpacing}" ColumnDefinitions="*,Auto" RowDefinitions="Auto">
+                <sf:SfTextInputLayout Grid.Column="0" Hint="Password">
+                    <Entry Text="{Binding Password}" SemanticProperties.Description="{Binding Password}" IsPassword="{Binding IsPassword}" />
+                </sf:SfTextInputLayout>
+
+                <ImageButton
+                    Grid.Column="1"
+                    Source="{Binding PasswordToggleIcon}"
+                    Command="{Binding TogglePasswordCommand}"
+                    BackgroundColor="Transparent"
+                    WidthRequest="{StaticResource IconSize}"
+                    HeightRequest="{StaticResource IconSize}"
+                    SemanticProperties.Description="Toggle password visibility" />
+            </Grid>
+
+            <Button Text="Sign In" Command="{Binding SignInCommand}"
+                SemanticProperties.Description="Sign In"
+                MinimumHeightRequest="{OnIdiom 44,Desktop=60}" Margin="0,10" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

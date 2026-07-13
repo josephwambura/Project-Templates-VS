@@ -6,7 +6,8 @@ using MauiSampleApp.Models;
 namespace MauiSampleApp.PageModels
 {
     public partial class MainPageModel(SeedDataService seedDataService, ProjectRepository projectRepository,
-        TaskRepository taskRepository, CategoryRepository categoryRepository, ModalErrorHandler errorHandler) : ObservableObject, IProjectTaskPageModel
+        TaskRepository taskRepository, CategoryRepository categoryRepository, IErrorHandler errorHandler,
+        SessionService sessionService, IServiceProvider serviceProvider) : ObservableObject, IProjectTaskPageModel
     {
         private bool _isNavigatedTo;
         private bool _dataLoaded;
@@ -29,7 +30,7 @@ namespace MauiSampleApp.PageModels
         bool _isRefreshing;
 
         [ObservableProperty]
-        private string _today = DateTime.Now.ToString("dddd, MMM d");
+        private string _today = DateTimeOffset.UtcNow.ToString("dddd, MMM d");
 
         [ObservableProperty]
         private Project? selectedProject;
@@ -151,6 +152,11 @@ namespace MauiSampleApp.PageModels
         [RelayCommand]
         private async Task CleanTasks()
         {
+            if (!await errorHandler.AuthenticateBiometrics("Verify your identity", "Authenticate to clean completed tasks"))
+            {
+                return;
+            }
+
             var completedTasks = Tasks.Where(t => t.IsCompleted).ToList();
             foreach (var task in completedTasks)
             {
@@ -161,6 +167,23 @@ namespace MauiSampleApp.PageModels
             OnPropertyChanged(nameof(HasCompletedTasks));
             Tasks = new(Tasks);
             await AppShell.DisplayToastAsync("All cleaned up!");
+        }
+
+        [RelayCommand]
+        private async Task SignOut()
+        {
+            // Wipe local session indicators
+            sessionService.CurrentUserId = null;
+            Preferences.Default.Set("IsUserLoggedIn", false);
+
+            var currentWindow = Application.Current?.Windows?.FirstOrDefault();
+            if (currentWindow != null)
+            {
+                var loginPage = serviceProvider.GetRequiredService<SignInPage>();
+
+                // This tears down the entire AppShell and its navigation stack from memory
+                currentWindow.Page = loginPage;
+            }
         }
     }
 }

@@ -29,6 +29,14 @@
         SemanticProperties.Description="Manage Meta"
         SemanticProperties.Hint="Navigate to manage meta"/>
 
+    <ShellContent
+        Title="User Devices"
+        Icon="{StaticResource IconUserDevices}"
+        ContentTemplate="{DataTemplate pages:UserDeviceListPage}"
+        Route="userDevices"
+        SemanticProperties.Description="User Devices"
+        SemanticProperties.Hint="Navigate to user devices"/>
+
     <Shell.FlyoutFooter>
         <Grid Padding="15">
             <sf:SfSegmentedControl x:Name="ThemeSegmentedControl" 

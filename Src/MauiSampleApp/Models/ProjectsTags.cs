@@ -2,8 +2,8 @@ namespace MauiSampleApp.Models
 {
     public class ProjectsTags
     {
-        public int ID { get; set; }
-        public int ProjectID { get; set; }
-        public int TagID { get; set; }
+        public Guid ID { get; set; }
+        public Guid ProjectID { get; set; }
+        public Guid TagID { get; set; }
     }
 }

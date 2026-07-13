@@ -1,212 +1,149 @@
 using MauiSampleApp.Models;
 
-using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
 namespace MauiSampleApp.Data
 {
-    /// <summary>
-    /// Repository class for managing tasks in the database.
-    /// </summary>
-    /// <remarks>
-    /// Initializes a new instance of the <see cref="TaskRepository"/> class.
-    /// </remarks>
-    /// <param name="logger">The logger instance.</param>
-    public class TaskRepository(ILogger<TaskRepository> logger)
+    public class TaskRepository(ApplicationDbContext context, ILogger<TaskRepository> logger)
     {
-        private bool _hasBeenInitialized = false;
+        public async Task<List<ProjectTask>> ListAsync() =>
+            await context.Tasks.ToListAsync();
 
-        /// <summary>
-        /// Initializes the database connection and creates the Task table if it does not exist.
-        /// </summary>
-        private async Task Init()
+        public async Task<List<ProjectTask>> ListAsync(Guid projectId) =>
+            await context.Tasks.Where(t => t.ProjectID == projectId).ToListAsync();
+
+        public async Task<ProjectTask?> GetAsync(Guid id) =>
+            await context.Tasks.FindAsync(id);
+
+        public async Task<Guid> SaveItemAsync(ProjectTask item)
         {
-            if (_hasBeenInitialized)
-                return;
-
-            await using var connection = new SqliteConnection(Constants.DatabasePath);
-            await connection.OpenAsync();
-
-            try
+            if (item.ID == Guid.Empty)
             {
-                var createTableCmd = connection.CreateCommand();
-                createTableCmd.CommandText = @"
-            CREATE TABLE IF NOT EXISTS Task (
-                ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                Title TEXT NOT NULL,
-                IsCompleted INTEGER NOT NULL,
-                ProjectID INTEGER NOT NULL
-            );";
-                await createTableCmd.ExecuteNonQueryAsync();
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error creating Task table");
-                throw;
-            }
-
-            _hasBeenInitialized = true;
-        }
-
-        /// <summary>
-        /// Retrieves a list of all tasks from the database.
-        /// </summary>
-        /// <returns>A list of <see cref="ProjectTask"/> objects.</returns>
-        public async Task<List<ProjectTask>> ListAsync()
-        {
-            await Init();
-            await using var connection = new SqliteConnection(Constants.DatabasePath);
-            await connection.OpenAsync();
-
-            var selectCmd = connection.CreateCommand();
-            selectCmd.CommandText = "SELECT * FROM Task";
-            var tasks = new List<ProjectTask>();
-
-            await using var reader = await selectCmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                tasks.Add(new ProjectTask
-                {
-                    ID = reader.GetInt32(0),
-                    Title = reader.GetString(1),
-                    IsCompleted = reader.GetBoolean(2),
-                    ProjectID = reader.GetInt32(3)
-                });
-            }
-
-            return tasks;
-        }
-
-        /// <summary>
-        /// Retrieves a list of tasks associated with a specific project.
-        /// </summary>
-        /// <param name="projectId">The ID of the project.</param>
-        /// <returns>A list of <see cref="ProjectTask"/> objects.</returns>
-        public async Task<List<ProjectTask>> ListAsync(int projectId)
-        {
-            await Init();
-            await using var connection = new SqliteConnection(Constants.DatabasePath);
-            await connection.OpenAsync();
-
-            var selectCmd = connection.CreateCommand();
-            selectCmd.CommandText = "SELECT * FROM Task WHERE ProjectID = @projectId";
-            selectCmd.Parameters.AddWithValue("@projectId", projectId);
-            var tasks = new List<ProjectTask>();
-
-            await using var reader = await selectCmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                tasks.Add(new ProjectTask
-                {
-                    ID = reader.GetInt32(0),
-                    Title = reader.GetString(1),
-                    IsCompleted = reader.GetBoolean(2),
-                    ProjectID = reader.GetInt32(3)
-                });
-            }
-
-            return tasks;
-        }
-
-        /// <summary>
-        /// Retrieves a specific task by its ID.
-        /// </summary>
-        /// <param name="id">The ID of the task.</param>
-        /// <returns>A <see cref="ProjectTask"/> object if found; otherwise, null.</returns>
-        public async Task<ProjectTask?> GetAsync(int id)
-        {
-            await Init();
-            await using var connection = new SqliteConnection(Constants.DatabasePath);
-            await connection.OpenAsync();
-
-            var selectCmd = connection.CreateCommand();
-            selectCmd.CommandText = "SELECT * FROM Task WHERE ID = @id";
-            selectCmd.Parameters.AddWithValue("@id", id);
-
-            await using var reader = await selectCmd.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                return new ProjectTask
-                {
-                    ID = reader.GetInt32(0),
-                    Title = reader.GetString(1),
-                    IsCompleted = reader.GetBoolean(2),
-                    ProjectID = reader.GetInt32(3)
-                };
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Saves a task to the database. If the task ID is 0, a new task is created; otherwise, the existing task is updated.
-        /// </summary>
-        /// <param name="item">The task to save.</param>
-        /// <returns>The ID of the saved task.</returns>
-        public async Task<int> SaveItemAsync(ProjectTask item)
-        {
-            await Init();
-            await using var connection = new SqliteConnection(Constants.DatabasePath);
-            await connection.OpenAsync();
-
-            var saveCmd = connection.CreateCommand();
-            if (item.ID == 0)
-            {
-                saveCmd.CommandText = @"
-            INSERT INTO Task (Title, IsCompleted, ProjectID) VALUES (@title, @isCompleted, @projectId);
-            SELECT last_insert_rowid();";
+                item.ID = Guid.CreateVersion7();
+                await context.Tasks.AddAsync(item);
             }
             else
-            {
-                saveCmd.CommandText = @"
-            UPDATE Task SET Title = @title, IsCompleted = @isCompleted, ProjectID = @projectId WHERE ID = @id";
-                saveCmd.Parameters.AddWithValue("@id", item.ID);
-            }
+                context.Tasks.Update(item);
 
-            saveCmd.Parameters.AddWithValue("@title", item.Title);
-            saveCmd.Parameters.AddWithValue("@isCompleted", item.IsCompleted);
-            saveCmd.Parameters.AddWithValue("@projectId", item.ProjectID);
-
-            var result = await saveCmd.ExecuteScalarAsync();
-            if (item.ID == 0)
-            {
-                item.ID = Convert.ToInt32(result);
-            }
-
+            await context.SaveChangesAsync();
             return item.ID;
         }
 
-        /// <summary>
-        /// Deletes a task from the database.
-        /// </summary>
-        /// <param name="item">The task to delete.</param>
-        /// <returns>The number of rows affected.</returns>
         public async Task<int> DeleteItemAsync(ProjectTask item)
         {
-            await Init();
-            await using var connection = new SqliteConnection(Constants.DatabasePath);
-            await connection.OpenAsync();
-
-            var deleteCmd = connection.CreateCommand();
-            deleteCmd.CommandText = "DELETE FROM Task WHERE ID = @id";
-            deleteCmd.Parameters.AddWithValue("@id", item.ID);
-
-            return await deleteCmd.ExecuteNonQueryAsync();
+            context.Tasks.Remove(item);
+            return await context.SaveChangesAsync();
         }
 
-        /// <summary>
-        /// Drops the Task table from the database.
-        /// </summary>
         public async Task DropTableAsync()
         {
-            await Init();
-            await using var connection = new SqliteConnection(Constants.DatabasePath);
-            await connection.OpenAsync();
+            context.Tasks.RemoveRange(context.Tasks);
+            await context.SaveChangesAsync();
+        }
+    }
 
-            var dropTableCmd = connection.CreateCommand();
-            dropTableCmd.CommandText = "DROP TABLE IF EXISTS Task";
-            await dropTableCmd.ExecuteNonQueryAsync();
-            _hasBeenInitialized = false;
+    public class UserDeviceRepository(ApplicationDbContext context)
+    {
+        public async Task<List<UserDevice>> ListAsync()
+        {
+            return await context.UserDevices
+                .ToListAsync();
+        }
+
+        public async Task<UserDevice?> GetAsync(Guid id)
+        {
+            return await context.UserDevices
+                .FirstOrDefaultAsync(p => p.ID == id);
+        }
+
+        public async Task<List<UserDevice>> GetByApplicationUserIdAsync(Guid applicationUserId)
+        {
+            return await context.UserDevices
+                .Where(p => p.ApplicationUserId == applicationUserId)
+                .ToListAsync();
+        }
+
+        public async Task<Guid> SaveItemAsync(UserDevice item)
+        {
+            if (item.ID == Guid.Empty)
+            {
+                item.ID = Guid.CreateVersion7();
+                await context.UserDevices.AddAsync(item);
+            }
+            else
+                context.UserDevices.Update(item);
+
+            await context.SaveChangesAsync();
+            return item.ID;
+        }
+
+        public async Task<int> DeleteItemAsync(UserDevice item)
+        {
+            context.UserDevices.Remove(item);
+            return await context.SaveChangesAsync();
+        }
+
+        public async Task DropTableAsync()
+        {
+            context.UserDevices.RemoveRange(context.UserDevices);
+            await context.SaveChangesAsync();
+        }
+    }
+
+    public class UserRepository(ApplicationDbContext context)
+    {
+        public async Task<List<ApplicationUser>> ListAsync()
+        {
+            return await context.Users
+                .ToListAsync();
+        }
+
+        public async Task<ApplicationUser?> GetAsync(Guid id)
+        {
+            return await context.Users
+                .FirstOrDefaultAsync(p => p.ID == id);
+        }
+
+        public async Task<bool> AnyByUserNameAsync(string userName, CancellationToken cancellationToken = default)
+        {
+            var normalizedUserName = userName.ToUpper();
+
+            return await context.Users.AnyAsync(u => u.UsernameNormalized == normalizedUserName, cancellationToken);
+        }
+
+        public async Task<ApplicationUser?> GetByUserNameAsync(string userName, CancellationToken cancellationToken = default)
+        {
+            var normalizedUserName = userName.ToUpper();
+
+            return await context.Users
+                .Include(u => u.Devices)
+                .FirstOrDefaultAsync(u => u.UsernameNormalized == normalizedUserName, cancellationToken);
+        }
+
+        public async Task<Guid> SaveItemAsync(ApplicationUser item)
+        {
+            if (item.ID == Guid.Empty)
+            {
+                item.ID = Guid.CreateVersion7();
+                await context.Users.AddAsync(item);
+            }
+            else
+                context.Users.Update(item);
+
+            await context.SaveChangesAsync();
+            return item.ID;
+        }
+
+        public async Task<int> DeleteItemAsync(ApplicationUser item)
+        {
+            context.Users.Remove(item);
+            return await context.SaveChangesAsync();
+        }
+
+        public async Task DropTableAsync()
+        {
+            context.Users.RemoveRange(context.Users);
+            await context.SaveChangesAsync();
         }
     }
 }

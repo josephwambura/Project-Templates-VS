@@ -2,9 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace MauiSampleApp.Models
 {
-    public class Category
+    public class Category : SyncableEntity
     {
-        public int ID { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Color { get; set; } = "#FF0000";
 

@@ -2,6 +2,8 @@
 
 using Microsoft.Extensions.Logging;
 
+using Plugin.Fingerprint;
+
 using Syncfusion.Maui.Toolkit.Hosting;
 
 namespace MauiSampleApp
@@ -44,19 +46,49 @@ namespace MauiSampleApp
     		builder.Logging.AddDebug();
     		builder.Services.AddLogging(configure => configure.AddDebug());
 #endif
+            // Register IFingerprint as a singleton so it can be injected into ViewModels.
+            builder.Services.AddSingleton<IFingerprint>(_ => CrossFingerprint.Current);
+
+            builder.Services.AddSingleton<SessionService>();
+
+            builder.Services.AddSingleton<IConnectivity>(Connectivity.Current);
+
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            {
+                options.UseSqlite(Constants.DatabasePath);
+            });
 
             builder.Services.AddSingleton<ProjectRepository>();
             builder.Services.AddSingleton<TaskRepository>();
             builder.Services.AddSingleton<CategoryRepository>();
             builder.Services.AddSingleton<TagRepository>();
+            builder.Services.AddSingleton<UserRepository>();
+            builder.Services.AddSingleton<UserDeviceRepository>();
             builder.Services.AddSingleton<SeedDataService>();
-            builder.Services.AddSingleton<ModalErrorHandler>();
+
+            builder.Services.AddSingleton<IErrorHandler, ModalErrorHandler>();
+
+            builder.Services.AddTransient<AppShell>();
+
             builder.Services.AddSingleton<MainPageModel>();
             builder.Services.AddSingleton<ProjectListPageModel>();
             builder.Services.AddSingleton<ManageMetaPageModel>();
 
+            builder.Services.AddSingleton<SignInPageModel>();
+            builder.Services.AddSingleton<SignUpPageModel>();
+            builder.Services.AddSingleton<SignInPage>();
+            builder.Services.AddSingleton<SignUpPage>();
+
+            builder.Services.AddSingleton<UserDeviceListPage>();
+
             builder.Services.AddTransientWithShellRoute<ProjectDetailPage, ProjectDetailPageModel>("project");
             builder.Services.AddTransientWithShellRoute<TaskDetailPage, TaskDetailPageModel>("task");
+
+            builder.Services.AddHttpClient<IEnterpriseSyncEngine, EnterpriseSyncEngine>(client =>
+            {
+                client.BaseAddress = new Uri(Constants.BackendBaseAddress);
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
 
             return builder.Build();
         }

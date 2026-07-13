@@ -9,7 +9,7 @@ using System.Collections.ObjectModel;
 
 namespace MauiSampleApp.PageModels
 {
-    public partial class ManageMetaPageModel(CategoryRepository categoryRepository, TagRepository tagRepository, SeedDataService seedDataService) : ObservableObject
+    public partial class ManageMetaPageModel(CategoryRepository categoryRepository, TagRepository tagRepository, SeedDataService seedDataService, IErrorHandler errorHandler) : ObservableObject
     {
         [ObservableProperty]
         private ObservableCollection<Category> _categories = [];
@@ -94,6 +94,11 @@ namespace MauiSampleApp.PageModels
         [RelayCommand]
         private async Task Reset()
         {
+            if (!await errorHandler.AuthenticateBiometrics("Verify your identity", "Authenticate to reset data"))
+            {
+                return;
+            }
+
             Preferences.Default.Remove("is_seeded");
             await seedDataService.LoadSeedDataAsync();
             Preferences.Default.Set("is_seeded", true);

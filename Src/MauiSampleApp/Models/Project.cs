@@ -2,15 +2,14 @@ using System.Text.Json.Serialization;
 
 namespace MauiSampleApp.Models
 {
-    public class Project
+    public class Project : SyncableEntity
     {
-        public int ID { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string Icon { get; set; } = string.Empty;
 
         [JsonIgnore]
-        public int CategoryID { get; set; }
+        public Guid CategoryID { get; set; }
 
         public Category? Category { get; set; }
 

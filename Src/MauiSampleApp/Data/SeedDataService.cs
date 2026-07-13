@@ -25,7 +25,7 @@ namespace MauiSampleApp.Data
             try
             {
                 await using Stream templateStream = await FileSystem.OpenAppPackageFileAsync(_seedDataFilePath);
-                return JsonSerializer.Deserialize(templateStream, JsonContext.Default.ProjectsJson);
+                return templateStream.FromJson(JsonContext.Default.ProjectsJson);
             }
             catch (Exception e)
             {
@@ -74,11 +74,18 @@ namespace MauiSampleApp.Data
         {
             try
             {
+                logger.LogInformation("Initiating full database wipe sequence...");
+
+                // Execute sequentially to respect DbContext thread safety and Foreign Key constraints
                 await Task.WhenAll(
+                    //userRepository.DropTableAsync(),
+                    //userDeviceRepository.DropTableAsync(),
                     projectRepository.DropTableAsync(),
                     taskRepository.DropTableAsync(),
                     tagRepository.DropTableAsync(),
                     categoryRepository.DropTableAsync());
+
+                logger.LogInformation("Database tables successfully cleared.");
             }
             catch (Exception e)
             {

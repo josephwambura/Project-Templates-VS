@@ -15,7 +15,7 @@ namespace MauiSampleApp.PageModels
         private readonly TaskRepository _taskRepository;
         private readonly CategoryRepository _categoryRepository;
         private readonly TagRepository _tagRepository;
-        private readonly ModalErrorHandler _errorHandler;
+        private readonly IErrorHandler _errorHandler;
 
         [ObservableProperty]
         private string _name = string.Empty;
@@ -79,7 +79,7 @@ namespace MauiSampleApp.PageModels
         public bool HasCompletedTasks
             => _project?.Tasks.Any(t => t.IsCompleted) ?? false;
 
-        public ProjectDetailPageModel(ProjectRepository projectRepository, TaskRepository taskRepository, CategoryRepository categoryRepository, TagRepository tagRepository, ModalErrorHandler errorHandler)
+        public ProjectDetailPageModel(ProjectRepository projectRepository, TaskRepository taskRepository, CategoryRepository categoryRepository, TagRepository tagRepository, IErrorHandler errorHandler)
         {
             _projectRepository = projectRepository;
             _taskRepository = taskRepository;
@@ -92,9 +92,9 @@ namespace MauiSampleApp.PageModels
 
         public void ApplyQueryAttributes(IDictionary<string, object> query)
         {
-            if (query.ContainsKey("id"))
+            if (query.TryGetValue("id", out object? value))
             {
-                int id = Convert.ToInt32(query["id"]);
+                Guid id = Guid.Parse(value.ToString());
                 LoadData(id).FireAndForgetSafeAsync(_errorHandler);
             }
             else if (query.ContainsKey("refresh"))
@@ -131,7 +131,7 @@ namespace MauiSampleApp.PageModels
             _project.Tasks = Tasks;
         }
 
-        private async Task LoadData(int id)
+        private async Task LoadData(Guid id)
         {
             try
             {
@@ -217,7 +217,7 @@ namespace MauiSampleApp.PageModels
 
             _project.Name = Name;
             _project.Description = Description;
-            _project.CategoryID = Category?.ID ?? 0;
+            _project.CategoryID = Category?.ID ?? Guid.Empty;
             _project.Icon = Icon.Icon ?? FluentUI.ribbon_24_regular;
             await _projectRepository.SaveItemAsync(_project);
 
@@ -231,7 +231,7 @@ namespace MauiSampleApp.PageModels
 
             foreach (var task in _project.Tasks)
             {
-                if (task.ID == 0)
+                if (task.ID == Guid.Empty)
                 {
                     task.ProjectID = _project.ID;
                     await _taskRepository.SaveItemAsync(task);

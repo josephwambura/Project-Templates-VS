@@ -16,7 +16,7 @@ namespace MauiSampleApp.Utilities
         /// <returns></returns>
         public static bool IsNullOrNew([NotNullWhen(false)] this Project? project)
         {
-            return project is null || project.ID == 0;
+            return project is null || project.ID == Guid.Empty;
         }
     }
 }

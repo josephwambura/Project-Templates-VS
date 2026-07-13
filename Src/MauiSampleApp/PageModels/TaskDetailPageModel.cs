@@ -7,7 +7,7 @@ using MauiSampleApp.Services;
 
 namespace MauiSampleApp.PageModels
 {
-    public partial class TaskDetailPageModel(ProjectRepository projectRepository, TaskRepository taskRepository, ModalErrorHandler errorHandler) : ObservableObject, IQueryAttributable
+    public partial class TaskDetailPageModel(ProjectRepository projectRepository, TaskRepository taskRepository, IErrorHandler errorHandler) : ObservableObject, IQueryAttributable
     {
         public const string ProjectQueryKey = "project";
         private ProjectTask? _task;
@@ -41,7 +41,7 @@ namespace MauiSampleApp.PageModels
         private async Task LoadTaskAsync(IDictionary<string, object> query)
         {
             Project = ExtractProjectFromQuery(query);
-            int taskId = ExtractTaskIdFromQuery(query);
+            Guid taskId = ExtractTaskIdFromQuery(query);
 
             _task = await LoadOrCreateTaskAsync(taskId);
             await ConfigureProjectStateAsync();
@@ -52,12 +52,12 @@ namespace MauiSampleApp.PageModels
         private Project? ExtractProjectFromQuery(IDictionary<string, object> query)
             => query.TryGetValue(ProjectQueryKey, out var project) ? (Project)project : null;
 
-        private int ExtractTaskIdFromQuery(IDictionary<string, object> query)
-            => query.TryGetValue("id", out var value) ? Convert.ToInt32(value) : 0;
+        private Guid ExtractTaskIdFromQuery(IDictionary<string, object> query)
+            => query.TryGetValue("id", out var value) ? Guid.Parse(value.ToString()) : Guid.Empty;
 
-        private async Task<ProjectTask> LoadOrCreateTaskAsync(int taskId)
+        private async Task<ProjectTask> LoadOrCreateTaskAsync(Guid taskId)
         {
-            if (taskId == 0) return new ProjectTask();
+            if (taskId == Guid.Empty) return new ProjectTask();
 
             var task = await taskRepository.GetAsync(taskId);
             if (task is null)
@@ -72,7 +72,7 @@ namespace MauiSampleApp.PageModels
 
         private async Task ConfigureProjectStateAsync()
         {
-            if (Project?.ID == 0)
+            if (Project?.ID == Guid.Empty)
             {
                 IsExistingProject = false;
             }
@@ -87,9 +87,9 @@ namespace MauiSampleApp.PageModels
                 : Projects.FindIndex(p => p.ID == _task.ProjectID);
         }
 
-        private void InitializeUIState(int taskId)
+        private void InitializeUIState(Guid taskId)
         {
-            if (taskId > 0 && _task is not null)
+            if (taskId != Guid.Empty && _task is not null)
             {
                 Title = _task.Title;
                 IsCompleted = _task.IsCompleted;
@@ -132,7 +132,7 @@ namespace MauiSampleApp.PageModels
 
             _task.Title = Title;
 
-            int projectId = Project?.ID ?? 0;
+            Guid projectId = Project?.ID ?? Guid.Empty;
 
             if (Projects.Count > SelectedProjectIndex && SelectedProjectIndex >= 0)
                 _task.ProjectID = projectId = Projects[SelectedProjectIndex].ID;
@@ -142,12 +142,12 @@ namespace MauiSampleApp.PageModels
             if (Project?.ID == projectId && !Project.Tasks.Contains(_task))
                 Project.Tasks.Add(_task);
 
-            if (_task.ProjectID > 0)
+            if (_task.ProjectID != Guid.Empty)
                 taskRepository.SaveItemAsync(_task).FireAndForgetSafeAsync(errorHandler);
 
             await Shell.Current.GoToAsync("..?refresh=true");
 
-            if (_task.ID > 0)
+            if (_task.ID != Guid.Empty)
                 await AppShell.DisplayToastAsync("Task saved");
         }
 
@@ -165,7 +165,7 @@ namespace MauiSampleApp.PageModels
             if (Project.Tasks.Contains(_task))
                 Project.Tasks.Remove(_task);
 
-            if (_task.ID > 0)
+            if (_task.ID != Guid.Empty)
                 await taskRepository.DeleteItemAsync(_task);
 
             await Shell.Current.GoToAsync("..?refresh=true");
