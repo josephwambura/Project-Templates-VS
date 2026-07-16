@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace MauiSampleApp.Data
 {
-    public class SeedDataService(ProjectRepository projectRepository, TaskRepository taskRepository, TagRepository tagRepository, CategoryRepository categoryRepository, ILogger<SeedDataService> logger)
+    public class SeedDataService(ProjectRepository projectRepository, TaskRepository taskRepository, TagRepository tagRepository, CategoryRepository categoryRepository, UserRepository userRepository, UserDeviceRepository userDeviceRepository, ILogger<SeedDataService> logger)
     {
         private readonly string _seedDataFilePath = "SeedData.json";
 
@@ -78,8 +78,8 @@ namespace MauiSampleApp.Data
 
                 // Execute sequentially to respect DbContext thread safety and Foreign Key constraints
                 await Task.WhenAll(
-                    //userRepository.DropTableAsync(),
-                    //userDeviceRepository.DropTableAsync(),
+                    userRepository.DropTableAsync(),
+                    userDeviceRepository.DropTableAsync(),
                     projectRepository.DropTableAsync(),
                     taskRepository.DropTableAsync(),
                     tagRepository.DropTableAsync(),

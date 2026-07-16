@@ -7,6 +7,7 @@ namespace MauiSampleApp
         private readonly IServiceProvider _serviceProvider;
         private readonly SessionService _sessionService;
         private readonly IEnterpriseSyncEngine _syncEngine;
+        private Window? _mainWindow;
 
         public App(IServiceProvider serviceProvider, SessionService sessionService, IEnterpriseSyncEngine syncEngine)
         {
@@ -18,29 +19,56 @@ namespace MauiSampleApp
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            // Evaluate session states safely on fresh cold-start boot cycles
-            bool isUserLoggedIn = _sessionService.CurrentUserId.HasValue ||
-                                 Preferences.Default.Get("IsUserLoggedIn", false);
+            bool isUserLoggedIn = Preferences.Default.Get("IsUserLoggedIn", false);
 
             Page rootPage;
 
             if (isUserLoggedIn)
             {
-                // Instantiate your workspace shell
+                if (!_sessionService.CurrentUserId.HasValue)
+                {
+                    string savedUserId = Preferences.Default.Get("CurrentUserId", string.Empty);
+                    if (Guid.TryParse(savedUserId, out Guid userId))
+                    {
+                        _sessionService.CurrentUserId = userId;
+                    }
+                }
+
                 rootPage = _serviceProvider.GetRequiredService<AppShell>();
             }
             else
             {
-                // Instantiate your standalone standalone sign-in page
                 rootPage = _serviceProvider.GetRequiredService<SignInPage>();
             }
 
-            var window = new Window(rootPage);
+            _mainWindow = new Window(rootPage);
 
-            window.Activated += (s, e) => _syncEngine.InitializeMonitoring();
-            window.Deactivated += (s, e) => _syncEngine.ShutdownMonitoring();
+            _mainWindow.Activated += OnWindowActivated;
+            _mainWindow.Deactivated += OnWindowDeactivated;
+            _mainWindow.Destroying += OnWindowDestroying;
 
-            return window;
+            return _mainWindow;
+        }
+
+        private void OnWindowActivated(object? sender, EventArgs e)
+        {
+            _syncEngine.InitializeMonitoring();
+        }
+
+        private void OnWindowDeactivated(object? sender, EventArgs e)
+        {
+            _syncEngine.ShutdownMonitoring();
+        }
+
+        private void OnWindowDestroying(object? sender, EventArgs e)
+        {
+            // Clean up event handlers explicitly when the window is closed
+            if (_mainWindow != null)
+            {
+                _mainWindow.Activated -= OnWindowActivated;
+                _mainWindow.Deactivated -= OnWindowDeactivated;
+                _mainWindow.Destroying -= OnWindowDestroying;
+            }
         }
     }
 }

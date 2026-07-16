@@ -15,44 +15,33 @@ namespace MauiSampleApp.PageModels
         [ObservableProperty]
         private string _password = string.Empty;
 
-        [ObservableProperty]
-        private bool _rememberMe;
-
-        // Password visibility toggle
-        [ObservableProperty]
-        private bool _isPassword = true;
-
-        [ObservableProperty]
-        private FontImageSource _passwordToggleIcon = new()
-        {
-            Glyph = FluentUI.eye_off_24_regular,   // closed eye glyph
-            FontFamily = FluentUI.FontFamily,
-            Color = Colors.Gray,
-            Size = 24
-        };
-
         [RelayCommand]
-        private void TogglePassword()
+        private async Task SignUp()
         {
-            IsPassword = !IsPassword;
+            // Wipe local session indicators
+            sessionService.CurrentUserId = null;
+            Preferences.Default.Set("IsUserLoggedIn", false);
+            Preferences.Default.Remove("CurrentUserId");
 
-            PasswordToggleIcon = new()
+            var currentWindow = Application.Current?.Windows?.FirstOrDefault();
+            if (currentWindow != null)
             {
-                Glyph = IsPassword ? FluentUI.eye_off_24_regular : FluentUI.eye_24_regular,
-                FontFamily = FluentUI.FontFamily,
-                Color = Colors.Gray,
-                Size = 24
-            };
-        }
+                var loginPage = serviceProvider.GetRequiredService<SignUpPage>();
 
-        [RelayCommand]
-        private void SignUp()
-        {
+                // This tears down the entire AppShell and its navigation stack from memory
+                currentWindow.Page = loginPage;
+            }
         }
 
         [RelayCommand]
         private async Task SignIn(CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(UserName) || string.IsNullOrWhiteSpace(Password))
+            {
+                errorHandler.HandleError(new Exception("Please enter both your username and password."));
+                return;
+            }
+
             var user = await userRepository.GetByUserNameAsync(UserName.Trim(), cancellationToken);
 
             if (user == null || user.PasswordHash != Password)
@@ -88,6 +77,7 @@ namespace MauiSampleApp.PageModels
             sessionService.CurrentUserId = user.ID;
 
             Preferences.Default.Set("IsUserLoggedIn", true);
+            Preferences.Default.Set("CurrentUserId", user.ID.ToString());
 
             var currentWindow = Application.Current?.Windows?.FirstOrDefault();
             if (currentWindow != null)

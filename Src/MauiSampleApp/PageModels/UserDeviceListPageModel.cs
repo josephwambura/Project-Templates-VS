@@ -5,7 +5,7 @@ using MauiSampleApp.Models;
 
 namespace MauiSampleApp.PageModels
 {
-    public partial class MainPageModel(SeedDataService seedDataService, ProjectRepository projectRepository,
+    public partial class UserDeviceListPageModel(ProjectRepository projectRepository,
         TaskRepository taskRepository, CategoryRepository categoryRepository, IErrorHandler errorHandler, ISecurityService securityService,
         SessionService sessionService, IServiceProvider serviceProvider) : ObservableObject, IProjectTaskPageModel
     {
@@ -75,19 +75,6 @@ namespace MauiSampleApp.PageModels
             }
         }
 
-        private async Task InitData(SeedDataService seedDataService)
-        {
-            bool isSeeded = Preferences.Default.ContainsKey("is_seeded");
-
-            if (!isSeeded)
-            {
-                await seedDataService.LoadSeedDataAsync();
-            }
-
-            Preferences.Default.Set("is_seeded", true);
-            await Refresh();
-        }
-
         [RelayCommand]
         private async Task Refresh()
         {
@@ -119,7 +106,7 @@ namespace MauiSampleApp.PageModels
         {
             if (!_dataLoaded)
             {
-                await InitData(seedDataService);
+                await Refresh();
                 _dataLoaded = true;
                 await Refresh();
             }

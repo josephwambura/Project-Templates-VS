@@ -14,9 +14,9 @@ namespace MauiSampleApp.Data
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
-            //Database.EnsureDeletedAsync().GetAwaiter().GetResult();
+            //Database.EnsureDeletedAsync().FireAndForgetSafeAsync();
             // Automatically builds the database and schema on mobile devices if it doesn't exist
-            Database.EnsureCreatedAsync().GetAwaiter().GetResult();
+            Database.EnsureCreatedAsync().FireAndForgetSafeAsync();
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -47,7 +47,7 @@ namespace MauiSampleApp
     		builder.Services.AddLogging(configure => configure.AddDebug());
 #endif
             // Register IFingerprint as a singleton so it can be injected into ViewModels.
-            builder.Services.AddSingleton<IFingerprint>(_ => CrossFingerprint.Current);
+            builder.Services.AddSingleton<IFingerprint>(CrossFingerprint.Current);
 
             builder.Services.AddSingleton<SessionService>();
 
@@ -67,8 +67,7 @@ namespace MauiSampleApp
             builder.Services.AddSingleton<SeedDataService>();
 
             builder.Services.AddSingleton<IErrorHandler, ModalErrorHandler>();
-
-            builder.Services.AddTransient<AppShell>();
+            builder.Services.AddSingleton<ISecurityService, SecurityService>();
 
             builder.Services.AddSingleton<MainPageModel>();
             builder.Services.AddSingleton<ProjectListPageModel>();
@@ -76,10 +75,12 @@ namespace MauiSampleApp
 
             builder.Services.AddSingleton<SignInPageModel>();
             builder.Services.AddSingleton<SignUpPageModel>();
+            builder.Services.AddSingleton<UserDeviceListPageModel>();
+
+            builder.Services.AddTransient<AppShell>();
+
             builder.Services.AddSingleton<SignInPage>();
             builder.Services.AddSingleton<SignUpPage>();
-
-            builder.Services.AddSingleton<UserDeviceListPage>();
 
             builder.Services.AddTransientWithShellRoute<ProjectDetailPage, ProjectDetailPageModel>("project");
             builder.Services.AddTransientWithShellRoute<TaskDetailPage, TaskDetailPageModel>("task");

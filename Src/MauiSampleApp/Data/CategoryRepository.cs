@@ -37,5 +37,13 @@ namespace MauiSampleApp.Data
             context.Categories.RemoveRange(context.Categories);
             await context.SaveChangesAsync();
         }
+
+        /// <summary>
+        /// Checks if any existing projects are currently assigned to this category.
+        /// </summary>
+        public async Task<bool> IsCategoryInUseAsync(Guid categoryId)
+        {
+            return await context.Projects.AnyAsync(p => p.CategoryID == categoryId);
+        }
     }
 }

@@ -9,7 +9,7 @@ using System.Collections.ObjectModel;
 
 namespace MauiSampleApp.PageModels
 {
-    public partial class ManageMetaPageModel(CategoryRepository categoryRepository, TagRepository tagRepository, SeedDataService seedDataService, IErrorHandler errorHandler) : ObservableObject
+    public partial class ManageMetaPageModel(CategoryRepository categoryRepository, TagRepository tagRepository, SeedDataService seedDataService, SessionService sessionService, IErrorHandler errorHandler, ISecurityService securityService) : ObservableObject
     {
         [ObservableProperty]
         private ObservableCollection<Category> _categories = [];
@@ -44,10 +44,30 @@ namespace MauiSampleApp.PageModels
         [RelayCommand]
         private async Task DeleteCategory(Category category)
         {
-            Categories.Remove(category);
-            await categoryRepository.DeleteItemAsync(category);
-            await AppShell.DisplayToastAsync("Category deleted");
-            SemanticScreenReader.Announce("Category deleted");
+            if (category == null) return;
+
+            try
+            {
+                bool isAssignedToProjects = await categoryRepository.IsCategoryInUseAsync(category.ID);
+
+                if (isAssignedToProjects)
+                {
+                    errorHandler.HandleError(new Exception(
+                        $"Cannot delete '{category.Title}'. It is currently assigned to active projects. " +
+                        "Reassign or delete those projects before removing this category."));
+                    return;
+                }
+
+                Categories.Remove(category);
+                await categoryRepository.DeleteItemAsync(category);
+                await AppShell.DisplayToastAsync("Category deleted");
+                SemanticScreenReader.Announce("Category deleted");
+            }
+            catch (Exception ex)
+            {
+                // Handle unexpected database errors gracefully
+                errorHandler.HandleError(ex);
+            }
         }
 
         [RelayCommand]
@@ -94,7 +114,13 @@ namespace MauiSampleApp.PageModels
         [RelayCommand]
         private async Task Reset()
         {
-            if (!await errorHandler.AuthenticateBiometrics("Verify your identity", "Authenticate to reset data"))
+            var currentUserId = sessionService.CurrentUserId;
+            if (currentUserId == null) return;
+
+            // Gracefully tries Biometrics. If disabled/unavailable/unconfigured, falls back to the local App PIN.
+            bool authorized = await securityService.AuthenticateWithFallback(currentUserId.Value, "Reset Data", "Authorize data reset");
+
+            if (!authorized)
             {
                 return;
             }

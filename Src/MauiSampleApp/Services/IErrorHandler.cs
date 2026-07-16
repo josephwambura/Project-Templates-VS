@@ -1,30 +1,23 @@
 namespace MauiSampleApp.Services
 {
     /// <summary>
-    /// Error Handler Service.
+    /// Error Handler Service contract.
     /// </summary>
     public interface IErrorHandler
     {
         /// <summary>
-        /// Handle error in UI.
+        /// Handle error in UI with default title.
         /// </summary>
-        /// <param name="ex">Exception being thrown.</param>
         void HandleError(Exception ex);
 
         /// <summary>
-        /// Handle error in UI.
+        /// Handle error in UI with custom configurations.
         /// </summary>
-        /// <param name="title">Title of the error.</param>
-        /// <param name="ex">Exception being thrown.</param>
-        /// <param name="cancel">Cancel button text.</param>
-        void HandleError(string title, Exception ex, string cancel);
+        void HandleError(string title, Exception ex, string cancel = "OK");
 
         /// <summary>
-        /// Authenticate user using biometrics (fingerprint, face recognition, etc.).
+        /// Direct, safe access to alert UI without wrapping in an Exception.
         /// </summary>
-        /// <param name="title"></param>
-        /// <param name="reason"></param>
-        /// <returns></returns>
-        Task<bool> AuthenticateBiometrics(string title = "Prove you have fingers!", string reason = "Because without it you can't have access");
+        Task DisplayAlertAsync(string title, string message, string cancel = "OK");
     }
 }

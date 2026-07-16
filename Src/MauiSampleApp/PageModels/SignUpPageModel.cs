@@ -18,67 +18,35 @@ namespace MauiSampleApp.PageModels
         [ObservableProperty]
         private string _confirmPassword = string.Empty;
 
-        // Password visibility toggle
-        [ObservableProperty]
-        private bool _isPassword = true;
-
-        [ObservableProperty]
-        private bool _isConfirmPassword = true;
-
-        [ObservableProperty]
-        private FontImageSource _passwordToggleIcon = new()
-        {
-            Glyph = FluentUI.eye_off_24_regular,   // closed eye glyph
-            FontFamily = FluentUI.FontFamily,
-            Color = Colors.Gray,
-            Size = 24
-        };
-
-        [ObservableProperty]
-        private FontImageSource _confirmPasswordToggleIcon = new()
-        {
-            Glyph = FluentUI.eye_off_24_regular,   // closed eye glyph
-            FontFamily = FluentUI.FontFamily,
-            Color = Colors.Gray,
-            Size = 24
-        };
-
         [RelayCommand]
-        private void TogglePassword()
+        private async Task SignIn()
         {
-            IsPassword = !IsPassword;
+            // Wipe local session indicators
+            sessionService.CurrentUserId = null;
+            Preferences.Default.Set("IsUserLoggedIn", false);
 
-            PasswordToggleIcon = new()
+            var currentWindow = Application.Current?.Windows?.FirstOrDefault();
+            if (currentWindow != null)
             {
-                Glyph = IsPassword ? FluentUI.eye_off_24_regular : FluentUI.eye_24_regular,
-                FontFamily = FluentUI.FontFamily,
-                Color = Colors.Gray,
-                Size = 24
-            };
-        }
+                var loginPage = serviceProvider.GetRequiredService<SignInPage>();
 
-        [RelayCommand]
-        private void ToggleConfirmPassword()
-        {
-            IsConfirmPassword = !IsConfirmPassword;
-
-            ConfirmPasswordToggleIcon = new()
-            {
-                Glyph = IsPassword ? FluentUI.eye_off_24_regular : FluentUI.eye_24_regular,
-                FontFamily = FluentUI.FontFamily,
-                Color = Colors.Gray,
-                Size = 24
-            };
-        }
-
-        [RelayCommand]
-        private void SignIn()
-        {
+                // This tears down the entire AppShell and its navigation stack from memory
+                currentWindow.Page = loginPage;
+            }
         }
 
         [RelayCommand]
         private async Task SignUp(CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(UserName) ||
+                string.IsNullOrWhiteSpace(ConfirmUserName) ||
+                string.IsNullOrWhiteSpace(Password) ||
+                string.IsNullOrWhiteSpace(ConfirmPassword))
+            {
+                errorHandler.HandleError(new Exception("All fields are required. Please fill out the entire form."));
+                return;
+            }
+
             if (!string.Equals(UserName.Trim(), ConfirmUserName.Trim()))
             {
                 errorHandler.HandleError(new Exception("The confirm username must match the username."));
@@ -121,6 +89,7 @@ namespace MauiSampleApp.PageModels
             sessionService.CurrentUserId = newUser.ID;
 
             Preferences.Default.Set("IsUserLoggedIn", true);
+            Preferences.Default.Set("CurrentUserId", newUser.ID.ToString());
 
             var currentWindow = Application.Current?.Windows?.FirstOrDefault();
             if (currentWindow != null)
