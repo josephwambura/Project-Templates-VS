@@ -39,34 +39,10 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <Label Grid.Row="0" Text="Task Categories" Style="{StaticResource Title2}" SemanticProperties.HeadingLevel="Level1"/>
-                        <controls:CategoryChart Grid.Row="1" />
-                        <Label Grid.Row="2" Text="Projects" Style="{StaticResource Title2}" SemanticProperties.HeadingLevel="Level1"/>
-                        <CollectionView Grid.Row="3" ItemsSource="{Binding Projects}"
-                                        Margin="-7.5,0"
-                                        MinimumHeightRequest="250"
-                                        x:Name="ProjectsCollectionView"
-                                        SelectionMode="Single"
-                                        SelectedItem="{Binding SelectedProject}"
-                                        SelectionChangedCommand="{Binding NavigateToProjectCommand, Source={RelativeSource AncestorType={x:Type pageModels:UserDeviceListPageModel}}, x:DataType=pageModels:UserDeviceListPageModel}"
-                                        SelectionChangedCommandParameter="{Binding SelectedProject}">
-                            <CollectionView.ItemsLayout>
-                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="7.5"/>
-                            </CollectionView.ItemsLayout>
-                            <CollectionView.ItemTemplate>
-                                <DataTemplate x:DataType="models:Project">
-                                    <controls:ProjectCardView WidthRequest="200" />
-                                </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
-                        <Grid Grid.Row="4" MinimumHeightRequest="44">
-                            <Label Text="Tasks" Style="{StaticResource Title2}" VerticalOptions="Center" SemanticProperties.HeadingLevel="Level1"/>
+                        <Grid Grid.Row="0" MinimumHeightRequest="44">
+                            <Label Text="Devices" Style="{StaticResource Title2}" VerticalOptions="Center" SemanticProperties.HeadingLevel="Level1"/>
                             <ImageButton 
                                 Source="{StaticResource IconClean}"
                                 HorizontalOptions="End"
@@ -74,24 +50,24 @@
                                 Aspect="Center"
                                 HeightRequest="44"
                                 WidthRequest="44"
-                                IsVisible="{Binding HasCompletedTasks}"
-                                Command="{Binding CleanTasksCommand}"
-                                SemanticProperties.Description="Clean tasks" />
+                                IsVisible="{Binding HasDisabledDevices}"
+                                Command="{Binding CleanDevicesCommand}"
+                                SemanticProperties.Description="Clean disabled devices" />
                         </Grid>
-                        <CollectionView ItemsSource="{Binding Tasks}"
-                                        Grid.Row="5"
-                                        x:Name="TasksCollectionView"
+                        <CollectionView ItemsSource="{Binding Devices}"
+                                        Grid.Row="1"
+                                        x:Name="DevicesCollectionView"
                                         SelectionMode="Single"
-                                        SelectedItem="{Binding SelectedTask}"
-                                        SelectionChangedCommand="{Binding NavigateToTaskCommand}"
-                                        SelectionChangedCommandParameter="{Binding SelectedTask}">
+                                        SelectedItem="{Binding SelectedDevice}"
+                                        SelectionChangedCommand="{Binding NavigateToDeviceCommand}"
+                                        SelectionChangedCommandParameter="{Binding SelectedDevice}">
                             <CollectionView.ItemsLayout>
                                 <LinearItemsLayout Orientation="Vertical"
                                                    ItemSpacing="15"/>
                             </CollectionView.ItemsLayout>
                             <CollectionView.ItemTemplate>
                                 <DataTemplate>
-                                    <controls:TaskView TaskCompletedCommand="{Binding TaskCompletedCommand, Source={RelativeSource AncestorType={x:Type pageModels:UserDeviceListPageModel}}, x:DataType=pageModels:UserDeviceListPageModel}"/>
+                                    <controls:DeviceView DeviceDisabledCommand="{Binding DeviceDisabledCommand, Source={RelativeSource AncestorType={x:Type pageModels:UserDeviceListPageModel}}, x:DataType=pageModels:UserDeviceListPageModel}"/>
                                 </DataTemplate>
                             </CollectionView.ItemTemplate>
                         </CollectionView>
@@ -99,11 +75,5 @@
                 </ScrollView>
             </pullToRefresh:SfPullToRefresh.PullableContent>
         </pullToRefresh:SfPullToRefresh>
-
-        <controls:AddButton 
-            IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
-            Command="{Binding AddTaskCommand}"
-            ToolTipProperties.Text="Add task"
-            SemanticProperties.Description="Add task" />
     </Grid>
 </ContentPage>

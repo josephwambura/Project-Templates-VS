@@ -10,17 +10,17 @@ namespace MauiSampleApp.Data
                 .ToListAsync();
         }
 
-        public async Task<UserDevice?> GetAsync(Guid id)
-        {
-            return await context.UserDevices
-                .FirstOrDefaultAsync(p => p.ID == id);
-        }
-
-        public async Task<List<UserDevice>> GetByApplicationUserIdAsync(Guid applicationUserId)
+        public async Task<List<UserDevice>> ListByApplicationUserIdAsync(Guid applicationUserId)
         {
             return await context.UserDevices
                 .Where(p => p.ApplicationUserId == applicationUserId)
                 .ToListAsync();
+        }
+
+        public async Task<UserDevice?> GetAsync(Guid id)
+        {
+            return await context.UserDevices
+                .FirstOrDefaultAsync(p => p.ID == id);
         }
 
         public async Task<Guid> SaveItemAsync(UserDevice item)

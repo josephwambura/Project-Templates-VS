@@ -5,23 +5,14 @@ using MauiSampleApp.Models;
 
 namespace MauiSampleApp.PageModels
 {
-    public partial class UserDeviceListPageModel(ProjectRepository projectRepository,
-        TaskRepository taskRepository, CategoryRepository categoryRepository, IErrorHandler errorHandler, ISecurityService securityService,
-        SessionService sessionService, IServiceProvider serviceProvider) : ObservableObject, IProjectTaskPageModel
+    public partial class UserDeviceListPageModel(UserDeviceRepository userDeviceRepository, IErrorHandler errorHandler, ISecurityService securityService,
+        SessionService sessionService, IServiceProvider serviceProvider) : ObservableObject, IUserDevicePageModel
     {
         private bool _isNavigatedTo;
         private bool _dataLoaded;
-        [ObservableProperty]
-        private List<CategoryChartData> _todoCategoryData = [];
 
         [ObservableProperty]
-        private List<Brush> _todoCategoryColors = [];
-
-        [ObservableProperty]
-        private List<ProjectTask> _tasks = [];
-
-        [ObservableProperty]
-        private List<Project> _projects = [];
+        private List<UserDevice> _devices = [];
 
         [ObservableProperty]
         bool _isBusy;
@@ -33,13 +24,10 @@ namespace MauiSampleApp.PageModels
         private string _today = DateTimeOffset.UtcNow.ToString("dddd, MMM d");
 
         [ObservableProperty]
-        private Project? selectedProject;
+        private UserDevice? selectedDevice;
 
-        [ObservableProperty]
-        private ProjectTask? selectedTask;
-
-        public bool HasCompletedTasks
-            => Tasks?.Any(t => t.IsCompleted) ?? false;
+        public bool HasDisabledDevices
+            => Devices?.Any(t => !t.IsEnabled) ?? false;
 
         private async Task LoadData()
         {
@@ -47,31 +35,12 @@ namespace MauiSampleApp.PageModels
             {
                 IsBusy = true;
 
-                Projects = await projectRepository.ListAsync();
-
-                var chartData = new List<CategoryChartData>();
-                var chartColors = new List<Brush>();
-
-                var categories = await categoryRepository.ListAsync();
-                foreach (var category in categories)
-                {
-                    chartColors.Add(category.ColorBrush);
-
-                    var ps = Projects.Where(p => p.CategoryID == category.ID).ToList();
-                    int tasksCount = ps.SelectMany(p => p.Tasks).Count();
-
-                    chartData.Add(new(category.Title, tasksCount));
-                }
-
-                TodoCategoryData = chartData;
-                TodoCategoryColors = chartColors;
-
-                Tasks = await taskRepository.ListAsync();
+                Devices = await userDeviceRepository.ListByApplicationUserIdAsync(sessionService.CurrentUserId.Value);
             }
             finally
             {
                 IsBusy = false;
-                OnPropertyChanged(nameof(HasCompletedTasks));
+                OnPropertyChanged(nameof(HasDisabledDevices));
             }
         }
 
@@ -118,47 +87,39 @@ namespace MauiSampleApp.PageModels
         }
 
         [RelayCommand]
-        private Task TaskCompleted(ProjectTask task)
+        private Task DeviceDisabled(UserDevice device)
         {
-            OnPropertyChanged(nameof(HasCompletedTasks));
-            return taskRepository.SaveItemAsync(task);
+            OnPropertyChanged(nameof(HasDisabledDevices));
+            return userDeviceRepository.SaveItemAsync(device);
         }
 
         [RelayCommand]
-        private Task AddTask()
-            => Shell.Current.GoToAsync($"task");
+        private Task NavigateToDevice(UserDevice device)
+            => Shell.Current.GoToAsync($"device?id={device.ID}");
 
         [RelayCommand]
-        private Task? NavigateToProject(Project project)
-            => project is null ? null : Shell.Current.GoToAsync($"project?id={project.ID}");
-
-        [RelayCommand]
-        private Task NavigateToTask(ProjectTask task)
-            => Shell.Current.GoToAsync($"task?id={task.ID}");
-
-        [RelayCommand]
-        private async Task CleanTasks()
+        private async Task CleanDevices()
         {
             var currentUserId = sessionService.CurrentUserId;
             if (currentUserId == null) return;
 
             // Gracefully tries Biometrics. If disabled/unavailable/unconfigured, falls back to the local App PIN.
-            bool authorized = await securityService.AuthenticateWithFallback(currentUserId.Value, "Clean Up", "Authorize task deletion");
+            bool authorized = await securityService.AuthenticateWithFallback(currentUserId.Value, "Clean Up", "Authorize device deletion");
 
             if (!authorized)
             {
                 return;
             }
 
-            var completedTasks = Tasks.Where(t => t.IsCompleted).ToList();
-            foreach (var task in completedTasks)
+            var disabledDevices = Devices.Where(t => !t.IsEnabled).ToList();
+            foreach (var device in disabledDevices)
             {
-                await taskRepository.DeleteItemAsync(task);
-                Tasks.Remove(task);
+                await userDeviceRepository.DeleteItemAsync(device);
+                Devices.Remove(device);
             }
 
-            OnPropertyChanged(nameof(HasCompletedTasks));
-            Tasks = new(Tasks);
+            OnPropertyChanged(nameof(HasDisabledDevices));
+            Devices = new(Devices);
             await AppShell.DisplayToastAsync("All cleaned up!");
         }
 
